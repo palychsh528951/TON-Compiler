@@ -204,20 +204,6 @@ let mayStore = 1 in {
         (int_tvm_dictusetgetref Cell:$val, I257:$key, Cell:$dict, I257:$precision))],
       "DICTUSETGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
       "DICTUSETGETREF NULLSWAPIFNOT", 0xf41f>;
-  defm DICTSETGET :
-    I<(outs Cell:$newdict, Slice:$oldval, I257:$succ),
-      (ins Slice:$val, Slice:$key, Cell:$dict, I257:$precision), (outs), (ins),
-      [(set Cell:$newdict, Slice:$oldval, I257:$succ,
-        (int_tvm_dictsetget Slice:$val, Slice:$key, Cell:$dict, I257:$precision))],
-      "DICTSETGET\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
-      "DICTSETGET NULLSWAPIFNOT", 0xf41e>;
-  defm DICTSETGETREF :
-    I<(outs Cell:$newdict, Cell:$oldval, I257:$succ),
-      (ins Cell:$val, Slice:$key, Cell:$dict, I257:$precision), (outs), (ins),
-      [(set Cell:$newdict, Cell:$oldval, I257:$succ,
-        (int_tvm_dictsetgetref Cell:$val, Slice:$key, Cell:$dict, I257:$precision))],
-      "DICTSETGETREF\t$newdict, $oldval, $succ, $val, $key, $dict, $precision",
-      "DICTSETGETREF NULLSWAPIFNOT", 0xf41f>;
 
   defm DICTREPLACE :
     I<(outs Cell:$newdict, I257:$succ),
@@ -329,12 +315,6 @@ let mayStore = 1 in {
       [(set Cell:$newdict, I257:$modified,
         (int_tvm_dictudel I257:$key, Cell:$dict, I257:$w))],
       "DICTUDEL\t$newdict, $modified, $key, $dict, $w", "DICTUDEL", 0xf45b>;
-  defm DICTDEL :
-    I<(outs Cell:$newdict, I257:$modified),
-      (ins Slice:$key, Cell:$dict, I257:$w), (outs), (ins),
-      [(set Cell:$newdict, I257:$modified,
-        (int_tvm_dictdel Slice:$key, Cell:$dict, I257:$w))],
-      "DICTDEL\t$newdict, $modified, $key, $dict, $w", "DICTDEL", 0xf459>;
 
   // TODO: think how to implement DICTADDGET-like operations
   //  with 2 or 3 return values (D old_val true) | (D false)
@@ -364,3 +344,36 @@ defm STDICT     : I0<(outs Builder : $builder),
                      [(set Builder : $builder, (int_tvm_stdict Cell : $dict,
                                                 Builder : $builderi))],
                      "STDICT", 0xf400>;
+
+
+// ******************************************* 
+//
+// A.10.2. Dictionary serialization and deserialization
+//
+// *******************************************/
+
+// F401 — SKIPDICT or SKIPOPTREF (s – s0), equivalent to LDDICT; NIP
+defm SKIPDICT : I0<(outs Slice:$dict), (ins Slice:$sl),
+                 [(set Slice:$dict, (int_tvm_skipdict Slice:$sl))],
+                 "SKIPDICT", 0xf401>;
+
+// F402 — LDDICTS (s – s0 s00), loads (parses) a (Slice-represented) dictionary s0 from Slice s, and returns the remainder of s as s00
+defm LDDICTS : I0<(outs Slice:$dict, Slice:$rem_sl), (ins Slice:$sl),
+                 [(set Slice:$dict, Slice:$rem_sl, (int_tvm_lddicts Slice:$sl))],
+                 "LDDICTS", 0xf402>;
+
+// F403 — PLDDICTS (s – s0), preloads a (Slice - represented) dictionary s0 from Slice s. Approximately equivalent to LDDICTS; DROP
+defm PLDDICTS : I0<(outs Slice:$dict), (ins Slice:$sl),
+                 [(set Slice:$dict, (int_tvm_plddicts Slice:$sl))],
+                 "PLDDICTS", 0xf403>;
+
+// F406 — LDDICTQ (s – D s0 -1 or s 0), a quiet version of LDDICT
+defm LDDICTQ : I0<(outs Cell:$dict, Slice:$rem_sl, I257:$result), (ins Slice:$sl),
+                 [(set Cell:$dict, Slice:$rem_sl, I257:$result, (int_tvm_lddictq Slice:$sl))],
+                 "LDDICTQ", 0xf406>;
+
+// F407 — PLDDICTQ (s – D -1 or 0), a quiet version of PLDDICT
+defm PLDDICTQ : I0<(outs Cell : $dict, I257:$result), (ins Slice : $sl),
+                    [(set Cell : $dict, I257:$result, (int_tvm_plddictq Slice : $sl))],
+                    "PLDDICTQ", 0xf407>;
+
